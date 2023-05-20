@@ -1,5 +1,5 @@
 # COVER MOVEMENT TOP DOWN TEMPLATE
-A basic system where the player is constraint to moving in cover if they decide to take cover, made in UE v.5.1 using the Top Down Template.
+A basic system where the player is constraint to moving in cover if they decide to take cover, made in UE v.5.1 using the Top Down Template. There are edge cases that haven't been resolved.
 
 ## Getting Started
 - Download the files and unzip them

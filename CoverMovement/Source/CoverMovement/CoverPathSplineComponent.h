@@ -17,6 +17,12 @@ class UCoverPathSplineComponent : public USplineComponent
 public:
 	UCoverPathSplineComponent();
 
+	UPROPERTY(EditDefaultsOnly, Category = "Cover debug")
+		bool bAutomaticallyCreateCoverPathSplineOnBeginPlay = true;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Cover debug")
+		bool bToggleDebugCoverPathSpline = false;
+
 	UPROPERTY(EditDefaultsOnly)
 		float Tension = 0.5f;
 
@@ -24,10 +30,12 @@ public:
 		float CurveThresholdNormal = 0.5f;
 
 	UFUNCTION(BlueprintCallable)
-		void OnCreateSplineAroundCover(UStaticMesh* StaticMesh, const TArray<FVector>& MeshVerteces);
+		void CreateSplineAroundCover(UStaticMeshComponent* StaticMeshComponent);
 
 private:
-	TArray<FVector> GetMidpoints(TArray<FVector> CornerPoints);
+	virtual void BeginPlay() override;
+
+	TArray<FVector> SetMidpoints(TArray<FVector> CornerPoints, const float HalfwayHeight);
 
 	TArray<FVector> GetPointsCreateCurves(TArray<FVector> Midpoints);
 };

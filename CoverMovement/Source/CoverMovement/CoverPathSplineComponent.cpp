@@ -2,6 +2,10 @@
 
 #include "CoverPathSplineComponent.h"
 #include "DrawDebugHelpers.h"
+#include "Components/StaticMeshComponent.h"
+#include "DrawDebugHelpers.h"
+#include "KismetProceduralMeshLibrary.h"
+#include "ProceduralMeshComponent.h"
 
 UCoverPathSplineComponent::UCoverPathSplineComponent()
 {
@@ -9,81 +13,87 @@ UCoverPathSplineComponent::UCoverPathSplineComponent()
     bDrawDebug = true;
 }
 
-void UCoverPathSplineComponent::OnCreateSplineAroundCover(UStaticMesh* StaticMesh, const TArray<FVector>& MeshVerteces)
+void UCoverPathSplineComponent::BeginPlay()
 {
+    Super::BeginPlay();
+
+    if (GetOwner()->FindComponentByClass(UStaticMeshComponent::StaticClass()) && bAutomaticallyCreateCoverPathSplineOnBeginPlay)
+        CreateSplineAroundCover(Cast<UStaticMeshComponent>(GetOwner()->FindComponentByClass(UStaticMeshComponent::StaticClass())));
+}
+
+void UCoverPathSplineComponent::CreateSplineAroundCover(UStaticMeshComponent* StaticMeshComponent)
+{
+    UStaticMesh* SM = StaticMeshComponent->GetStaticMesh();
+    float HalfwayHeight = GetOwner()->GetTransform().GetScale3D().Z;
+
     // Don't add the mesh verteces, actually calculate some math.
     ClearSplinePoints();
 
-    // TArray<FVector> SplinePoints = GetPointsCreateCurves(GetMidpoints(MeshVerteces));
-    TArray<FVector> SplinePoints = GetMidpoints(MeshVerteces);
+    TArray<FVector> Vertices;
+    TArray<int32> Triangles;
+    TArray<FVector> Normals;
+    TArray<FVector2D> UVs;
+    TArray<FProcMeshTangent> Tangents;
+
+    UKismetProceduralMeshLibrary::GetSectionFromStaticMesh(SM, 0, 0, Vertices, Triangles, Normals, UVs, Tangents);
+
+    // TArray<FVector> SplinePoints = GetPointsCreateCurves(SetMidpoints(MeshVerteces));
+    TArray<FVector> SplinePoints = SetMidpoints(Vertices, HalfwayHeight);
     SetSplinePoints(SplinePoints, ESplineCoordinateSpace::Local);
 
-    /*
-    if (GetOwner() && GEngine) {
+    if (GetOwner() && GEngine && bToggleDebugCoverPathSpline) {
         GEngine->AddOnScreenDebugMessage(2, 20.f, FColor::Turquoise, FString::Printf(TEXT("Parent: %s, Parent location: %s"),
             *GetOwner()->GetName(), *GetOwner()->GetActorLocation().ToCompactString()));
 
         DrawDebugPoint(GetWorld(), GetComponentLocation(), 3.5f, FColor::Red, true);
         DrawDebugPoint(GetWorld(), GetOwner()->GetActorLocation(), 3.5f, FColor::White, true);
     }
-    */
 
     // Modify in GetPointsCreateCurves, depending on the angle between each of the points, determine whether it'll be a curve or not
     if (SplinePoints.Num() <= 12)
         for (const FVector& Point : SplinePoints)
             SetSplinePointType(SplinePoints.Find(Point), ESplinePointType::Linear);
-
-    // UKismetProcedualMeshLibrary::GetSectionFromStaticMesh
 }
 
-TArray<FVector> UCoverPathSplineComponent::GetMidpoints(TArray<FVector> CornerPoints)
+TArray<FVector> UCoverPathSplineComponent::SetMidpoints(TArray<FVector> CornerPoints, const float HalfwayHeight)
 {
-    // TSet<FVector> AutomaticRemoveDuplicatePoints;
     TArray<FVector> UniquePoints;
+
+    float MinZOnMesh = MAX_FLT;
+
+    // Prevents the issue of the mesh having to be symmetrical.
+    // The important part is to grab the base, since covers will always have a base and not necessarily be dependent on the top.
+    for (const FVector& CurrentVector : CornerPoints)
+        if (CurrentVector.Z < MinZOnMesh)
+            MinZOnMesh = CurrentVector.Z;
 
     for (const FVector& CurrentVector : CornerPoints)
     {
-        bool bFoundDuplicate = false;
-        for (const FVector& UniqueVector : UniquePoints)
+        if (FMath::IsNearlyEqual(CurrentVector.Z, MinZOnMesh, KINDA_SMALL_NUMBER))
         {
-            if (FMath::IsNearlyEqual(CurrentVector.X, UniqueVector.X, KINDA_SMALL_NUMBER) && FMath::IsNearlyEqual(CurrentVector.Y, UniqueVector.Y, KINDA_SMALL_NUMBER))
-            {
-                bFoundDuplicate = true;
-                break;
-            }
-        }
-
-        if (!bFoundDuplicate)
-        {
-            // Find the average height of all vectors at the same X and Y location
-            float TotalHeight = 0.f;
-            int32 NumMatchingPoints = 0;
-            for (const FVector& MatchingVector : CornerPoints)
-            {
-                if (FMath::IsNearlyEqual(CurrentVector.X, MatchingVector.X, KINDA_SMALL_NUMBER) && FMath::IsNearlyEqual(CurrentVector.Y, MatchingVector.Y, KINDA_SMALL_NUMBER))
+            bool bFoundDuplicate = false;
+            for (const FVector& UniqueVector : UniquePoints)
+                if (FMath::IsNearlyEqual(CurrentVector.X, UniqueVector.X, KINDA_SMALL_NUMBER) && FMath::IsNearlyEqual(CurrentVector.Y, UniqueVector.Y, KINDA_SMALL_NUMBER))
                 {
-                    TotalHeight += MatchingVector.Z;
-                    NumMatchingPoints++;
+                    bFoundDuplicate = true;
+                    break;
                 }
+
+            if (!bFoundDuplicate)
+            {
+                FVector HalfwayVector = CurrentVector;
+                HalfwayVector.Z = HalfwayHeight;
+                UniquePoints.AddUnique(HalfwayVector);
             }
-
-            float HalfwayHeight = TotalHeight / (NumMatchingPoints)+0.5f * GetOwner()->GetTransform().GetScale3D().Z;
-
-            // Add the new spline point at the halfway height
-            FVector HalfwayVector = CurrentVector;
-            HalfwayVector.Z = HalfwayHeight;
-            UniquePoints.AddUnique(HalfwayVector);
         }
     }
 
-    /*
-    for (const FVector& UniqueVector : UniquePoints)
-        if (GEngine)
+    if (GEngine && bToggleDebugCoverPathSpline)
+        for (const FVector& UniqueVector : UniquePoints)
         {
             GEngine->AddOnScreenDebugMessage(-1, 20.f, FColor::Red, FString::Printf(TEXT("Unique vector: %s"), *UniqueVector.ToCompactString()));
             DrawDebugPoint(GetWorld(), UniqueVector, 3.5f, FColor::Green, true);
         }
-    */
 
     return UniquePoints;
 }

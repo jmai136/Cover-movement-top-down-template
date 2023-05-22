@@ -7,8 +7,9 @@
 #include "CoverPathSplineComponent.generated.h"
 
 /**
- * 
+ *
  */
+
 UCLASS(meta = (BlueprintSpawnableComponent))
 class UCoverPathSplineComponent : public USplineComponent
 {
@@ -35,7 +36,12 @@ public:
 private:
 	virtual void BeginPlay() override;
 
-	TArray<FVector> SetMidpoints(TArray<FVector> CornerPoints, const float HalfwayHeight);
+
+	int Orientation(FVector P, FVector Q, FVector R);
+
+	TArray<FVector> JarvisMarchAlgorithm(TArray<FVector> Verteces);
+
+	TArray<FVector> SetMidpoints(TArray<FVector> CornerPoints);
 
 	TArray<FVector> GetPointsCreateCurves(TArray<FVector> Midpoints);
 };

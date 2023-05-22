@@ -127,7 +127,6 @@ TArray<FVector> UCoverPathSplineComponent::SetMidpoints(TArray<FVector> CornerVe
                     break;
                 }
 
-            // Yea, this might not work
             if (!bFoundDuplicate)
             {
                 FVector HalfwayVector = CurrentVector;
@@ -170,9 +169,9 @@ TArray<FVector> UCoverPathSplineComponent::GetPointsCreateCurves(TArray<FVector>
             GEngine->AddOnScreenDebugMessage(-0, 20.f, FColor::Green, FString::Printf(TEXT("Angle between Verteces: %f, Previous vector: %s, Next vector: %s"), AngleBetweenTwoVerteces, *PrevVector.ToCompactString(), *NextVector.ToCompactString()));
 
         // Dot products will only ever range from -1 to 0 to 1
-        // -1: Two vectors pointing in opposite directions AKA 180°
-        // 0: Two vectors perpendicular to each other AKA 90°
-        // 1: Two vectors pointing in the same direction AKA 0°
+        // -1: Two vectors pointing in opposite directions AKA 180Â°
+        // 0: Two vectors perpendicular to each other AKA 90Â°
+        // 1: Two vectors pointing in the same direction AKA 0Â°
         if ((float)AngleBetweenTwoVerteces < CurveThresholdNormal)
             SplineVerteces.AddUnique(PrevVector + (CurrentVector - PrevVector) * 0.5f);
     }

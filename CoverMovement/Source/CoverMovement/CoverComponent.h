@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -31,7 +29,7 @@ public:
 		void SetIsInCover(uint8 SetIsInCover);
 
 	UFUNCTION(BlueprintPure, Category = "Cover")
-		bool ConstrainMovementToSplineKeyboardInput(const FVector DirectionBasedOnCameraRotation, const float ActionValue, FVector& WorldDirection, float& ScaleValue);
+		bool ConstrainMovementToSplineKeyboardInput(const FVector DirectionBasedOnCameraRotation, const float ActionValue, FVector2D CoverCharacterShapeComponentLocation, FVector2D CoverCharacterVelocityNormalised, const float ShapeComponentDiameter, const float ShapeComponentHalfHeight, FVector& WorldDirection, float& ScaleValue);
 
 	UFUNCTION(BlueprintPure, Category = "Cover")
 		void ConstrainMovementToSplineMouseInput(const FVector& ClickedDest, float& DistanceAlongSpline, FVector& LocationAtFindLocationClosestToWorldLocation, FRotator& RotationFromGetTangentAtDistanceAlongSpline);
@@ -59,18 +57,11 @@ private:
 	UFUNCTION(BlueprintPure, Category = "Cover path spline")
 		float FindDistanceAlongSplineClosestToWorldLocation(const FVector& WorldLocation);
 
-	FVector PredictedWorldDirection;
-	float PredictedScaleValue;
-	FVector PredictedLocation;
-	FVector ClosestPointOnOtherCoverPathSplineOfComponentOwnerShapeComponentToPredictedValue;
+	float GetDistanceBetweenShapeComponentLocationByVelocityWithDiameter(const FVector2D CoverCharacterShapeComponentLocation, FVector& OutCoverCharacterShapeComponentLocation, const FVector2D CoverCharacterVelocityNormalised, const float CoverCharacterShapeComponentDiameter, const float ShapeComponentHalfHeight, FVector& EndTraceLocation);
 
-	FVector GetPredictedLocation();
+	float GetDistanceFromClosestPointOnSplineToEndTraceLocation(const FVector EndTraceLocation, const float CoverCharacterShapeComponentDiameter, const float ShapeComponentHalfHeight, FVector& OutClosestSplinePointToEndTraceLocation);
 
-	float UpdateDestination();
-
-	float GetDistanceBetweenCollisionPointNearestToPredictedLocationAndSplinePointClosestToIt();
-
-	FVector GetClosestPointOnOtherCoverPathSplineComponentOwnerShapeComponent();
+	float GetDistanceFromOutClosestSplinePointToEndTraceLocationToCurrentCoverCharacterLocation(const FVector OutClosestSplinePointToEndTraceLocation, const FVector OutCoverCharacterShapeComponentLocation);
 
 	UPROPERTY(BlueprintGetter = GetCoverStrafeDirectionAllAxis)
 		FVector CoverStrafeDirectionAllAxis;

@@ -24,9 +24,12 @@ Global
 		Development|Win64 = Development|Win64
 		Shipping|Win64 = Shipping|Win64
 	EndGlobalSection
+	# UnrealVS Section
+	GlobalSection(ddbf523f-7eb6-4887-bd51-85a714ff87eb) = preSolution
+		AvailablePlatforms=Win64
+	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{5A95BD9B-34F7-3E2B-B269-A985442CE2F9}.DebugGame Editor|Win64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
-		{5A95BD9B-34F7-3E2B-B269-A985442CE2F9}.DebugGame Editor|Win64.Build.0 = BuiltWithUnrealBuildTool|Win64
 		{5A95BD9B-34F7-3E2B-B269-A985442CE2F9}.DebugGame|Win64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
 		{5A95BD9B-34F7-3E2B-B269-A985442CE2F9}.Development Editor|Win64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
 		{5A95BD9B-34F7-3E2B-B269-A985442CE2F9}.Development|Win64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
@@ -48,11 +51,5 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{5A95BD9B-34F7-3E2B-B269-A985442CE2F9} = {233774A8-CC9D-3FA9-86D1-90573E92B704}
 		{60DD4C74-DA3C-3EEA-B94F-D2C8CC5F272D} = {DE1F8B53-6C02-3C13-9101-A7C8D96F3FF6}
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {816F676F-3491-4BB2-9B29-3973D9FEA93F}
-	EndGlobalSection
-	GlobalSection(ddbf523f-7eb6-4887-bd51-85a714ff87eb) = preSolution
-		AvailablePlatforms = Win64
 	EndGlobalSection
 EndGlobal

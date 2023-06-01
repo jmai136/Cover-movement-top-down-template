@@ -1,6 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "CoverComponent.h"
 #include "CoverPathSplineComponent.h"
 #include "Components/ShapeComponent.h"
@@ -75,108 +72,92 @@ float UCoverComponent::FindDistanceAlongSplineClosestToWorldLocation(const FVect
 	return DistanceAlongSplineWorldLocation + DifferenceDistanceTimesDifferenceWorldLocation;
 }
 
-// Get where the actor will be, not where the actor is because ultimately you want to determine whether the location you're going to is viable, current location the player is at doesn't tell you that.
-// The source code for calculating AddMovementInput is: ControlInputVector += (WorldDirection * ScaleValue)
-// Doesn't need to be exact, bForce will add more force, this is base calculation done.
-FVector UCoverComponent::GetPredictedLocation()
+float UCoverComponent::GetDistanceBetweenShapeComponentLocationByVelocityWithDiameter(const FVector2D CoverCharacterShapeComponentLocation, FVector& OutCoverCharacterShapeComponentLocation, const FVector2D CoverCharacterVelocityNormalised, const float CoverCharacterShapeComponentDiameter, const float ShapeComponentHalfHeight, FVector& EndTraceLocation)
 {
-	return GetOwner()->GetActorLocation() + (PredictedWorldDirection * PredictedScaleValue);
-}
+	OutCoverCharacterShapeComponentLocation = FVector(CoverCharacterShapeComponentLocation.X, CoverCharacterShapeComponentLocation.Y, ShapeComponentHalfHeight);
+	FVector2D EndTrace2D = CoverCharacterShapeComponentLocation + (CoverCharacterVelocityNormalised * CoverCharacterShapeComponentDiameter);
 
-float UCoverComponent::UpdateDestination()
-{
-	PredictedLocation = GetPredictedLocation();
-	FVector SplinePointLocationClosestToPredicted = OtherCoverPathSplineComponent->FindLocationClosestToWorldLocation(PredictedLocation, ESplineCoordinateSpace::World);
+	EndTraceLocation = FVector(EndTrace2D.X, EndTrace2D.Y, ShapeComponentHalfHeight);
 
-	if (GetWorld() && bToggleDebugCover)
+	if (GEngine && GetWorld() && bToggleDebugCover)
 	{
-		UWorld* World = GetWorld();
-		FHitResult HitResult;
-
-		World->LineTraceSingleByChannel(HitResult, PredictedLocation, SplinePointLocationClosestToPredicted, ECollisionChannel::ECC_Visibility, FCollisionQueryParams::DefaultQueryParam, FCollisionResponseParams::DefaultResponseParam);
-
-		DrawDebugLine(World, PredictedLocation, SplinePointLocationClosestToPredicted, FColor::FromHex("#FFF500F"), false, -1, 0, 2.0f);
-
-		DrawDebugPoint(World, PredictedLocation, 10.f, FColor::FromHex("#FFD89CFF"));
-		DrawDebugPoint(World, SplinePointLocationClosestToPredicted, 10.f, FColor::FromHex("#2C2677FF"));
-
-		DrawDebugSphere(World, PredictedLocation, 20.f, 12, FColor::FromHex("#FFD89CFF"));
-		DrawDebugSphere(World, SplinePointLocationClosestToPredicted, 20.f, 12, FColor::FromHex("#2C2677FF"));
+		DrawDebugDirectionalArrow(GetWorld(), OutCoverCharacterShapeComponentLocation, EndTraceLocation, 10.f, FColor::FromHex("FF7BD0FF"), false, .025f, 0U, 5.f);
+		GEngine->AddOnScreenDebugMessage(-1, 0, FColor::FromHex("FF7BD0FF"), FString::Printf(TEXT("A: %f"), FVector::Dist(OutCoverCharacterShapeComponentLocation, EndTraceLocation)));
 	}
 
-	return FVector::Dist(PredictedLocation, SplinePointLocationClosestToPredicted);
+	return FVector::Dist(OutCoverCharacterShapeComponentLocation, EndTraceLocation);
 }
 
-FVector UCoverComponent::GetClosestPointOnOtherCoverPathSplineComponentOwnerShapeComponent()
+float UCoverComponent::GetDistanceFromClosestPointOnSplineToEndTraceLocation(const FVector EndTraceLocation, const float CoverCharacterShapeComponentDiameter, const float ShapeComponentHalfHeight, FVector& OutClosestSplinePointToEndTraceLocation)
 {
-	if (GEngine && bToggleDebugCover)
-		GEngine->AddOnScreenDebugMessage(0, 0, FColor::FromHex("#9DBC00"), FString::Printf(TEXT("Primitive component: %s"), *ShapeComponent->GetName()));
+	OutClosestSplinePointToEndTraceLocation = OtherCoverPathSplineComponent->FindLocationClosestToWorldLocation(EndTraceLocation, ESplineCoordinateSpace::World);
+	OutClosestSplinePointToEndTraceLocation = FVector(OutClosestSplinePointToEndTraceLocation.X, OutClosestSplinePointToEndTraceLocation.Y, ShapeComponentHalfHeight);
+	FVector EndTraceFromClosestSplinePoint = OutClosestSplinePointToEndTraceLocation + (FVector(EndTraceLocation - OutClosestSplinePointToEndTraceLocation).GetSafeNormal() * CoverCharacterShapeComponentDiameter);
+	EndTraceFromClosestSplinePoint = FVector(EndTraceFromClosestSplinePoint.X, EndTraceFromClosestSplinePoint.Y, ShapeComponentHalfHeight);
 
-	FVector OutPointOnBody;
-	ShapeComponent->GetClosestPointOnCollision(PredictedLocation, OutPointOnBody);
-	return OutPointOnBody;
-}
-
-float UCoverComponent::GetDistanceBetweenCollisionPointNearestToPredictedLocationAndSplinePointClosestToIt()
-{
-	FVector StartLocation = GetClosestPointOnOtherCoverPathSplineComponentOwnerShapeComponent();
-	ClosestPointOnOtherCoverPathSplineOfComponentOwnerShapeComponentToPredictedValue = OtherCoverPathSplineComponent->FindLocationClosestToWorldLocation(StartLocation, ESplineCoordinateSpace::World);
-
-	if (GetWorld() && bToggleDebugCover)
+	if (GEngine && GetWorld() && bToggleDebugCover)
 	{
-		UWorld* World = GetWorld();
-		FHitResult HitResult;
-
-		World->LineTraceSingleByChannel(HitResult, StartLocation, ClosestPointOnOtherCoverPathSplineOfComponentOwnerShapeComponentToPredictedValue, ECollisionChannel::ECC_Visibility, FCollisionQueryParams::DefaultQueryParam, FCollisionResponseParams::DefaultResponseParam);
-
-		DrawDebugLine(World, StartLocation, ClosestPointOnOtherCoverPathSplineOfComponentOwnerShapeComponentToPredictedValue, FColor::FromHex("#66FFFF"), false, -1, 0, 2.0f);
-
-		DrawDebugPoint(World, StartLocation, 10.f, FColor::FromHex("#9DBC00"));
-		DrawDebugPoint(World, ClosestPointOnOtherCoverPathSplineOfComponentOwnerShapeComponentToPredictedValue, 10.f, FColor::FromHex("#D2D1CD"));
-
-		DrawDebugSphere(World, StartLocation, 20.f, 12, FColor::FromHex("#9DBC00"));
-		DrawDebugSphere(World, ClosestPointOnOtherCoverPathSplineOfComponentOwnerShapeComponentToPredictedValue, 20.f, 12, FColor::FromHex("#D2D1CD"));
+		DrawDebugDirectionalArrow(GetWorld(), OutClosestSplinePointToEndTraceLocation, EndTraceFromClosestSplinePoint, 10.f, FColor::FromHex("9DBC00FF"), false, .025f, 0U, 5.f);
+		GEngine->AddOnScreenDebugMessage(-1, 0, FColor::FromHex("9DBC00FF"), FString::Printf(TEXT("B: %f"), FVector::Dist(EndTraceFromClosestSplinePoint, OutClosestSplinePointToEndTraceLocation)));
 	}
 
-	return FVector::Dist(StartLocation, ClosestPointOnOtherCoverPathSplineOfComponentOwnerShapeComponentToPredictedValue);
+	return FVector::Dist(EndTraceFromClosestSplinePoint, OutClosestSplinePointToEndTraceLocation);
+}
+
+float UCoverComponent::GetDistanceFromOutClosestSplinePointToEndTraceLocationToCurrentCoverCharacterLocation(const FVector OutClosestSplinePointToEndTraceLocation, const FVector OutCoverCharacterShapeComponentLocation)
+{
+	if (GEngine && GetWorld() && bToggleDebugCover)
+		DrawDebugDirectionalArrow(GetWorld(), OutCoverCharacterShapeComponentLocation, OutClosestSplinePointToEndTraceLocation, 10.f, FColor::FromHex("0849BCFF"), false, .025f, 0U, 5.f);
+
+	return FVector::Dist(OutCoverCharacterShapeComponentLocation, OutClosestSplinePointToEndTraceLocation);
 }
 
 // When bringing everything to C++, have these two methods be overloaded.
-bool UCoverComponent::ConstrainMovementToSplineKeyboardInput(const FVector DirectionBasedOnCameraRotation, const float ActionValue, FVector& WorldDirection, float& ScaleValue)
+bool UCoverComponent::ConstrainMovementToSplineKeyboardInput(const FVector DirectionBasedOnCameraRotation, const float ActionValue, FVector2D CoverCharacterShapeComponentLocation, FVector2D CoverCharacterVelocityNormalised, const float ShapeComponentDiameter, const float ShapeComponentHalfHeight, FVector& WorldDirection, float& ScaleValue)
 {
-	PredictedWorldDirection = WorldDirection;
-	PredictedScaleValue = ActionValue;
+	FVector OutCoverCharacterShapeComponentLocation;
+	FVector EndTraceLocation;
+	FVector OutClosestSplinePointToEndTraceLocation;
 
-	float DistanceBetweenPredictedLocationAndClosestPointOnSplineToItFromLineTrace = UpdateDestination();
-	float DistanceBetweenCollisionPointNearestToPredictedLocationAndSplinePointClosestToIt = GetDistanceBetweenCollisionPointNearestToPredictedLocationAndSplinePointClosestToIt();
+	float DistanceBetweenShapeComponentLocationByActorForwardVectorWithDiameter = GetDistanceBetweenShapeComponentLocationByVelocityWithDiameter(CoverCharacterShapeComponentLocation, OutCoverCharacterShapeComponentLocation, CoverCharacterVelocityNormalised, ShapeComponentDiameter, ShapeComponentHalfHeight, EndTraceLocation);
+	float DistanceFromClosestPointOnSplineToEndTraceLocation = GetDistanceFromClosestPointOnSplineToEndTraceLocation(EndTraceLocation, ShapeComponentDiameter, ShapeComponentHalfHeight, OutClosestSplinePointToEndTraceLocation);
+	float DistanceFromOutClosestSplinePointToEndTraceLocationToCurrentCoverCharacterLocation = GetDistanceFromOutClosestSplinePointToEndTraceLocationToCurrentCoverCharacterLocation(OutClosestSplinePointToEndTraceLocation, OutCoverCharacterShapeComponentLocation);
 
-	bool bDistanceCondition = DistanceBetweenPredictedLocationAndClosestPointOnSplineToItFromLineTrace <= DistanceBetweenCollisionPointNearestToPredictedLocationAndSplinePointClosestToIt;
+	float Hypotenuse = UKismetMathLibrary::Hypotenuse(DistanceBetweenShapeComponentLocationByActorForwardVectorWithDiameter, DistanceFromClosestPointOnSplineToEndTraceLocation);
 
-	if (bDistanceCondition)
+	FVector DirectionFromOutClosestSplinePointToEndTraceLocationToCurrentCoverCharacterLocation = (OutClosestSplinePointToEndTraceLocation - OutCoverCharacterShapeComponentLocation).GetSafeNormal();
+
+	bool bIsCoverCharacterInRangeOfSpline = (DistanceFromOutClosestSplinePointToEndTraceLocationToCurrentCoverCharacterLocation <= Hypotenuse);
+
+	if (bIsCoverCharacterInRangeOfSpline)
 	{
 		WorldDirection = DirectionBasedOnCameraRotation;
 		ScaleValue = ActionValue;
 	}
 	else
 	{
-		// By getting the rotation from the predicted location and the closest splne point to the closest point on the shape component, the player will always end up going in that direction if they are past the distance condition.
-		WorldDirection = UKismetMathLibrary::FindLookAtRotation(PredictedLocation, ClosestPointOnOtherCoverPathSplineOfComponentOwnerShapeComponentToPredictedValue).Vector();
-		// If the WorldDirection always return a unit vector, the ScaleValue determines the intensity of the movement.
-		ScaleValue = DistanceBetweenPredictedLocationAndClosestPointOnSplineToItFromLineTrace - DistanceBetweenCollisionPointNearestToPredictedLocationAndSplinePointClosestToIt;
+		WorldDirection = DirectionFromOutClosestSplinePointToEndTraceLocationToCurrentCoverCharacterLocation;
+		ScaleValue = DistanceFromOutClosestSplinePointToEndTraceLocationToCurrentCoverCharacterLocation - Hypotenuse;
 	}
 
 	if (GEngine && bToggleDebugCover)
 	{
-		FString ComparisonOperator =
-			(DistanceBetweenPredictedLocationAndClosestPointOnSplineToItFromLineTrace < DistanceBetweenCollisionPointNearestToPredictedLocationAndSplinePointClosestToIt) ? " < " :
-			(DistanceBetweenPredictedLocationAndClosestPointOnSplineToItFromLineTrace == DistanceBetweenCollisionPointNearestToPredictedLocationAndSplinePointClosestToIt) ? " == " :
-			(DistanceBetweenPredictedLocationAndClosestPointOnSplineToItFromLineTrace > DistanceBetweenCollisionPointNearestToPredictedLocationAndSplinePointClosestToIt) ? " > " : "";
+		UWorld* World = GetWorld();
 
-		GEngine->AddOnScreenDebugMessage(-1, 0, FColor::FromHex("#003277FF"),
-			FString::Printf(TEXT("Distance between predicted location and spline point (predicted location): %f %s Distance between collision point (predicted location) and spline point (predicted location): %f\nWorld direction: %s, Scale value: %f"), DistanceBetweenPredictedLocationAndClosestPointOnSplineToItFromLineTrace, *ComparisonOperator, DistanceBetweenCollisionPointNearestToPredictedLocationAndSplinePointClosestToIt, *WorldDirection.ToCompactString(), ScaleValue));
+		GEngine->AddOnScreenDebugMessage(-1, 0, FColor::FromHex("0849BCFF"), FString::Printf(TEXT("C: %f, C (current value): %f, direction from C to A: %s"), Hypotenuse, DistanceFromOutClosestSplinePointToEndTraceLocationToCurrentCoverCharacterLocation, *DirectionFromOutClosestSplinePointToEndTraceLocationToCurrentCoverCharacterLocation.ToCompactString()));
+
+		FString ComparisonOperator =
+			(DistanceFromOutClosestSplinePointToEndTraceLocationToCurrentCoverCharacterLocation < Hypotenuse) ? " < " :
+			(DistanceFromOutClosestSplinePointToEndTraceLocationToCurrentCoverCharacterLocation == Hypotenuse) ? " == " :
+			(DistanceFromOutClosestSplinePointToEndTraceLocationToCurrentCoverCharacterLocation > Hypotenuse) ? " > " : "";
+
+		FVector CoverCharacterVelocity = FVector(CoverCharacterVelocityNormalised.X, CoverCharacterVelocityNormalised.Y, 0);
+
+		GEngine->AddOnScreenDebugMessage(-1, 0, FColor::FromHex("#312FBCFF"),
+			FString::Printf(TEXT("Distance from spline point closest to end location (normalised velocity) to current location: %f %s Hypotenuse: %f\nWorld direction: %s, Scale value: %f\nCover character velocity normalised: %s"), DistanceFromOutClosestSplinePointToEndTraceLocationToCurrentCoverCharacterLocation, *ComparisonOperator, Hypotenuse, *WorldDirection.ToCompactString(), ScaleValue, *CoverCharacterVelocity.ToCompactString()));
 	}
 
-	return bDistanceCondition;
+	return  bIsCoverCharacterInRangeOfSpline;
 }
 
 void UCoverComponent::ConstrainMovementToSplineMouseInput(const FVector& ClickedDest, float& DistanceAlongSpline, FVector& LocationAtFindLocationClosestToWorldLocation, FRotator& RotationFromFindTangentClosestToWorldLocation)

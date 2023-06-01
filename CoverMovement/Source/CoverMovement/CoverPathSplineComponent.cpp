@@ -1,4 +1,4 @@
-#include "Cover/CoverPathSplineComponent.h"
+#include "CoverPathSplineComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "DrawDebugHelpers.h"
 #include "KismetProceduralMeshLibrary.h"
